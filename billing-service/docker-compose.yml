@@ -1,6 +1,6 @@
 
 services:
-  patient-service:
+  billing-service:
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,7 +9,7 @@ services:
       - "4001:4001"
       - "9001:9001"
     networks:
-      - internal
+      - patient-management-network
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db:5432/db
       SPRING_DATASOURCE_USERNAME: admin_user
@@ -18,5 +18,5 @@ services:
       SPRING_SQL_INIT_MODE: always
 
 networks:
-  internal:
-    driver: bridge
+  patient-management-network:
+    external: true

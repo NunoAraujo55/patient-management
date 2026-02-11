@@ -13,7 +13,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: db
     networks:
-      - internal
+      - patient-management-network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U admin_user -d db" ]
       interval: 10s
@@ -31,7 +31,7 @@ services:
       patient-service-db:
         condition: service_healthy
     networks:
-      - internal
+      - patient-management-network
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db:5432/db
       SPRING_DATASOURCE_USERNAME: admin_user
@@ -40,5 +40,5 @@ services:
       SPRING_SQL_INIT_MODE: always
 
 networks:
-  internal:
-    driver: bridge
+  patient-management-network:
+    external: true
