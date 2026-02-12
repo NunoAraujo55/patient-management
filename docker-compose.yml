@@ -1,0 +1,107 @@
+services:
+  patient-service-db-global:
+    image: postgres:latest
+    container_name: patient-service-db-global
+    ports:
+      - "5010:5432"
+    volumes:
+      - /Users/nuno/Documents/dev/db_volumes/patient-service:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db
+    networks:
+      - patient-management-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin_user -d db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  patient-service:
+    build:
+      context: ./patient-service
+      dockerfile: Dockerfile
+    container_name: patient-service
+    ports:
+      - "4000:4000"
+    depends_on:
+      patient-service-db-global:
+        condition: service_healthy
+    networks:
+      - patient-management-network
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db-global:5432/db
+      SPRING_DATASOURCE_USERNAME: admin_user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SQL_INIT_MODE: always
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9094
+
+
+  billing-service:
+    build:
+      context: ./billing-service
+      dockerfile: Dockerfile
+    container_name: billing-service
+    depends_on:
+      patient-service-db-global:
+        condition: service_healthy
+    ports:
+      - "4001:4001"
+      - "9001:9001"
+    networks:
+      - patient-management-network
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://patient-service-db-global:5432/db
+      SPRING_DATASOURCE_USERNAME: admin_user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SQL_INIT_MODE: always
+
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    container_name: analytics-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "4002:4002"
+    networks:
+      - patient-management-network
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9094
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    networks:
+      - patient-management-network
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9094,EXTERNAL://localhost:9092'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9094,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "9094" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+networks:
+  patient-management-network:
+    external: true
