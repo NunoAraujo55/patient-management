@@ -1,0 +1,17 @@
+
+services:
+  analytics-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: analytics-service
+    ports:
+      - "4002:4002"
+    networks:
+      - patient-management-network
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9094
+
+networks:
+  patient-management-network:
+    external: true
