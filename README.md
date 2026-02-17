@@ -6,7 +6,8 @@
 It consists of three domain-driven services that communicate using both synchronous and asynchronous patterns.
 
 The full infrastructure, application services, Kafka, and PostgreSQL is containerized and orchestrated using **Docker Compose**.
-This project is not focused on the Domain, but on how to work with Microservices Kafka, gRPC and Docker.
+
+This project is **not focused on the Domain**, but on **how to work with Microservices Kafka, gRPC and Docker**.
 
 ---
 
